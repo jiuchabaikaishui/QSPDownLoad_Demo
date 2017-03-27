@@ -8,30 +8,29 @@
 
 #import <Foundation/Foundation.h>
 
-@class QSPDownloadSource;
-
 typedef NS_ENUM(NSInteger, QSPDownloadSourceStyle) {
-    QSPDownloadSourceStyleDown = 0,//暂停
-    QSPDownloadSourceStyleSuspend = 1,//下载
+    QSPDownloadSourceStyleDown = 0,//下载
+    QSPDownloadSourceStyleSuspend = 1,//暂停
     QSPDownloadSourceStyleStop = 2,//停止
-    QSPDownloadSourceStyleFinished = 3//完成
+    QSPDownloadSourceStyleFinished = 3,//完成
+    QSPDownloadSourceStyleFail = 4//失败
 };
 
-
+@class QSPDownloadSource;
 @protocol QSPDownloadSourceDelegate <NSObject>
-
 @optional
 - (void)downloadSource:(QSPDownloadSource *)source changedStyle:(QSPDownloadSourceStyle)style;
 - (void)downloadSource:(QSPDownloadSource *)source changedResumeData:(NSData *)resumeData;
 - (void)downloadSource:(QSPDownloadSource *)source didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite;
-
 @end
-@interface QSPDownloadSource : NSObject
 
+@interface QSPDownloadSource : NSObject <NSCoding>
 //地址路径
 @property (copy, nonatomic, readonly) NSString *netPath;
 //本地路径
-@property (copy, nonatomic) NSURL *location;
+@property (copy, nonatomic, readonly) NSURL *location;
+//下载状态
+@property (assign, nonatomic, readonly) QSPDownloadSourceStyle style;
 //下载任务
 @property (strong, nonatomic, readonly) NSURLSessionDownloadTask *task;
 //文件名称
@@ -40,11 +39,12 @@ typedef NS_ENUM(NSInteger, QSPDownloadSourceStyle) {
 @property (assign, nonatomic, readonly) int64_t totalBytesWritten;
 //文件字节数
 @property (assign, nonatomic, readonly) int64_t totalBytesExpectedToWrite;
+//是否离线下载
+@property (assign, nonatomic, getter=isOffLine) BOOL offLine;
 //代理
 @property (weak, nonatomic) id<QSPDownloadSourceDelegate> delegate;
 
 @end
-
 
 
 @class QSPDownloadTool;
@@ -54,20 +54,44 @@ typedef NS_ENUM(NSInteger, QSPDownloadSourceStyle) {
 
 @end
 
+typedef NS_ENUM(NSInteger, QSPDownloadToolOffLineStyle) {
+    QSPDownloadToolOffLineStyleDefaut = 0,//默认离线后暂停
+    QSPDownloadToolOffLineStyleAuto = 1,//根据保存的状态自动处理
+    QSPDownloadToolOffLineStyleFromSource = 2//根据保存的状态自动处理
+};
 @interface QSPDownloadTool : NSObject
+
+/**
+ 下载的所有任务资源
+ */
+@property (strong, nonatomic, readonly) NSArray *downloadSources;
+//离线后的下载方式
+@property (assign, nonatomic) QSPDownloadToolOffLineStyle offLineStyle;
 
 + (instancetype)shareInstance;
 
+/**
+ 按字节计算文件大小
+ 
+ @param tytes 字节数
+ @return 文件大小字符串
+ */
++ (NSString *)calculationDataWithBytes:(int64_t)tytes;
 
 /**
  添加下载任务
 
  @param netPath 下载地址
- @param delegate 代理对象
  @return 下载任务数据模型
  */
-- (QSPDownloadSource *)addDownloadTast:(NSString *)netPath andDelegate:(id<QSPDownloadToolDelegate>)delegate;
+- (QSPDownloadSource *)addDownloadTast:(NSString *)netPath andOffLine:(BOOL)offLine;
 
+/**
+ 添加代理
+ 
+ @param delegate 代理对象
+ */
+- (void)addDownloadToolDelegate:(id<QSPDownloadToolDelegate>)delegate;
 /**
  移除代理
 
@@ -81,6 +105,10 @@ typedef NS_ENUM(NSInteger, QSPDownloadSourceStyle) {
  @param source 下载任务数据模型
  */
 - (void)suspendDownload:(QSPDownloadSource *)source;
+/**
+ 暂停所有下载任务
+ */
+- (void)suspendAllTask;
 
 /**
  继续下载任务
@@ -88,12 +116,26 @@ typedef NS_ENUM(NSInteger, QSPDownloadSourceStyle) {
  @param source 下载任务数据模型
  */
 - (void)continueDownload:(QSPDownloadSource *)source;
-
+/**
+ 开启所有下载任务
+ */
+- (void)startAllTask;
 /**
  停止下载任务
 
  @param source 下载任务数据模型
  */
 - (void)stopDownload:(QSPDownloadSource *)source;
+/**
+ 停止所有下载任务
+ */
+- (void)stopAllTask;
+
+@end
+
+
+@interface QSPDownloadToolDelegateObject : NSObject
+
+@property (weak, nonatomic) id<QSPDownloadToolDelegate> delegate;
 
 @end

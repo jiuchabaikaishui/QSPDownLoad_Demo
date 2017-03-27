@@ -11,9 +11,9 @@
 #import "AppDelegate.h"
 #import "AppDelegate+Download.h"
 
+#define DownloadCell_Limit              1024.0
+
 @interface QSPDownloadSource ()
-//下载状态
-@property (assign, nonatomic) QSPDownloadSourceStyle style;
 //复位数据
 @property (strong, nonatomic) NSData *resumeData;
 
@@ -41,35 +41,70 @@
     
     _style = style;
 }
-- (void)changeNetPath:(NSString *)netPath
+- (void)setNetPath:(NSString *)netPath
 {
     _netPath = netPath;
 }
-- (void)changeLocation:(NSURL *)location
+- (void)setLocation:(NSURL *)location
 {
     _location = location;
 }
-- (void)changeTask:(NSURLSessionDownloadTask *)task
+- (void)setTask:(NSURLSessionDownloadTask *)task
 {
     _task = task;
 }
-- (void)changeFileName:(NSString *)fileName
+- (void)setFileName:(NSString *)fileName
 {
     _fileName = fileName;
 }
-- (void)changeTotalBytesWritten:(int64_t)totalBytesWritten
+- (void)setTotalBytesWritten:(int64_t)totalBytesWritten
 {
     _totalBytesWritten = totalBytesWritten;
 }
-- (void)changeTotalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
+- (void)setTotalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
 {
     _totalBytesExpectedToWrite = totalBytesExpectedToWrite;
+}
+
+- (instancetype)initWithCoder:(NSCoder *)aDecoder
+{
+    if (self = [super init]) {
+        self.netPath = [aDecoder decodeObjectForKey:@"netPath"];
+        self.location = [aDecoder decodeObjectForKey:@"location"];
+        self.style = [aDecoder decodeIntegerForKey:@"style"];
+        self.task = nil;
+        self.fileName = [aDecoder decodeObjectForKey:@"fileName"];
+        self.totalBytesWritten = [aDecoder decodeInt64ForKey:@"totalBytesWritten"];
+        self.totalBytesExpectedToWrite = [aDecoder decodeInt64ForKey:@"totalBytesExpectedToWrite"];
+        self.offLine = [aDecoder decodeBoolForKey:@"offLine"];
+        
+        self.resumeData = [aDecoder decodeObjectForKey:@"resumeData"];
+    }
+    
+    return self;
+}
+- (void)encodeWithCoder:(NSCoder *)aCoder
+{
+    [aCoder encodeObject:self.netPath forKey:@"netPath"];
+    [aCoder encodeObject:self.location forKey:@"location"];
+    [aCoder encodeInteger:self.style forKey:@"style"];
+    [aCoder encodeObject:nil forKey:@"task"];
+    [aCoder encodeObject:self.fileName forKey:@"fileName"];
+    [aCoder encodeInt64:self.totalBytesWritten forKey:@"totalBytesWritten"];
+    [aCoder encodeInt64:self.totalBytesExpectedToWrite forKey:@"totalBytesExpectedToWrite"];
+    [aCoder encodeBool:self.offLine forKey:@"offLine"];
+    
+    [aCoder encodeObject:self.resumeData forKey:@"resumeData"];
 }
 
 @end
 
 
-@interface QSPDownloadTool ()<NSURLSessionDownloadDelegate>
+@interface QSPDownloadTool ()<NSURLSessionDownloadDelegate, UIApplicationDelegate>
+
+#define QSPDownloadTool_DownloadSources_Path            [[NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject] stringByAppendingPathComponent:@"QSPDownloadTool_downloadSources.data"]
+#define QSPDownloadTool_OffLineStyle_Key                @"QSPDownloadTool_OffLineStyle_Key"
+#define QSPDownloadTool_OffLine_Key                     @"QSPDownloadTool_OffLine_Key"
 
 @property (strong, nonatomic) NSMutableArray *downloadSources;
 @property (strong, nonatomic) NSURLSession *session;
@@ -86,10 +121,56 @@ static QSPDownloadTool *_shareInstance;
 {
     if (_downloadSources == nil) {
         _downloadSources = [NSMutableArray arrayWithCapacity:1];
+        NSArray *arr = [NSArray arrayWithContentsOfFile:QSPDownloadTool_DownloadSources_Path];
+        
+        for (NSData *data in arr) {
+            QSPDownloadSource *source = [NSKeyedUnarchiver unarchiveObjectWithData:data];
+            if (source.resumeData) {
+                [source setTask:[self.session downloadTaskWithResumeData:source.resumeData]];
+            }
+            else
+            {
+                [source setTask:[self.session downloadTaskWithURL:[NSURL URLWithString:source.netPath]]];
+            }
+            [_downloadSources addObject:source];
+            
+            if (source.isOffLine) {
+                if (self.offLineStyle == QSPDownloadToolOffLineStyleDefaut) {
+                    if (source.style == QSPDownloadSourceStyleDown || source.style == QSPDownloadSourceStyleSuspend) {
+                        source.style = QSPDownloadSourceStyleDown;
+                        [self suspendDownload:source];
+                    }
+                }
+                else if (self.offLineStyle == QSPDownloadToolOffLineStyleAuto)
+                {
+                    if (source.style == QSPDownloadSourceStyleDown || source.style == QSPDownloadSourceStyleSuspend || source.style == QSPDownloadSourceStyleFail) {
+                        source.style = QSPDownloadSourceStyleSuspend;
+                        [self continueDownload:source];
+                    }
+                }
+                else if (self.offLineStyle == QSPDownloadToolOffLineStyleFromSource)
+                {
+                    if (source.style == QSPDownloadSourceStyleDown) {
+                        source.style = QSPDownloadSourceStyleSuspend;
+                        [self continueDownload:source];
+                    }
+                }
+            }
+        }
     }
     
     return _downloadSources;
 }
+- (QSPDownloadToolOffLineStyle)offLineStyle
+{
+    return [[NSUserDefaults standardUserDefaults] integerForKey:QSPDownloadTool_OffLineStyle_Key];
+}
+- (void)setOffLineStyle:(QSPDownloadToolOffLineStyle)offLineStyle
+{
+    [[NSUserDefaults standardUserDefaults] setInteger:self.offLineStyle forKey:QSPDownloadTool_OffLineStyle_Key];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+}
+
 - (NSURLSession *)session
 {
     if (_session == nil) {
@@ -108,15 +189,29 @@ static QSPDownloadTool *_shareInstance;
     
     return _delegateArr;
 }
-
 + (instancetype)allocWithZone:(struct _NSZone *)zone
 {
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         _shareInstance = [super allocWithZone:zone];
+        [[NSNotificationCenter defaultCenter] addObserver:_shareInstance selector:@selector(savaDownloadSources:) name:UIApplicationWillTerminateNotification object:nil];
     });
     
     return _shareInstance;
+}
+- (void)savaDownloadSources:(NSNotification *)sender
+{
+    NSLog(@"我退出啦！");
+    NSMutableArray *mArr = [[NSMutableArray alloc] initWithCapacity:1];
+    for (QSPDownloadSource *souce in self.downloadSources) {
+        if (souce.isOffLine) {
+            NSData *data = [NSKeyedArchiver archivedDataWithRootObject:souce];
+            [mArr addObject:data];
+        }
+    }
+    
+    [mArr writeToFile:QSPDownloadTool_DownloadSources_Path atomically:YES];
+    [[NSNotificationCenter defaultCenter] removeObserver:self];
 }
 + (instancetype)shareInstance
 {
@@ -129,29 +224,87 @@ static QSPDownloadTool *_shareInstance;
 }
 
 /**
+ 按字节计算文件大小
+
+ @param tytes 字节数
+ @return 文件大小字符串
+ */
++ (NSString *)calculationDataWithBytes:(int64_t)tytes
+{
+    NSString *result;
+    double length;
+    if (tytes > DownloadCell_Limit) {
+        length = tytes/DownloadCell_Limit;
+        if (length > DownloadCell_Limit) {
+            length /= DownloadCell_Limit;
+            if (length > DownloadCell_Limit) {
+                length /= DownloadCell_Limit;
+                if (length > DownloadCell_Limit) {
+                    length /= DownloadCell_Limit;
+                    result = [NSString stringWithFormat:@"%.2fTB", length];
+                }
+                else
+                {
+                    result = [NSString stringWithFormat:@"%.2fGB", length];
+                }
+            }
+            else
+            {
+                result = [NSString stringWithFormat:@"%.2fMB", length];
+            }
+        }
+        else
+        {
+            result = [NSString stringWithFormat:@"%.2fKB", length];
+        }
+    }
+    else
+    {
+        result = [NSString stringWithFormat:@"%lliB", tytes];
+    }
+    
+    return result;
+}
+
+/**
  添加下载任务
  
  @param netPath 下载地址
  @return 下载任务数据模型
  */
-- (QSPDownloadSource *)addDownloadTast:(NSString *)netPath andDelegate:(id<QSPDownloadToolDelegate>)delegate
+- (QSPDownloadSource *)addDownloadTast:(NSString *)netPath andOffLine:(BOOL)offLine;
 {
     QSPDownloadSource *source = [[QSPDownloadSource alloc] init];
-    [source changeNetPath:netPath];
-    [source changeTask:[self.session downloadTaskWithRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:netPath]]]];
-    [source changeFileName:[[netPath componentsSeparatedByString:@"/"] lastObject]];
+    [source setNetPath:netPath];
+    [source setTask:[self.session downloadTaskWithRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:netPath]]]];
+    [source setFileName:[[netPath componentsSeparatedByString:@"/"] lastObject]];
     //开始下载任务
     [source.task resume];
     source.style = QSPDownloadSourceStyleDown;
-    [self.downloadSources addObject:source];
-    if (![self.delegateArr containsObject:delegate]) {
-        [self.delegateArr addObject:delegate];
-    }
+    source.offLine = offLine;
+    [(NSMutableArray *)self.downloadSources addObject:source];
     return source;
+}
+- (void)addDownloadToolDelegate:(id<QSPDownloadToolDelegate>)delegate
+{
+    for (QSPDownloadToolDelegateObject *obj in self.delegateArr) {
+        if (obj.delegate == delegate) {
+            return;
+        }
+    }
+    
+    QSPDownloadToolDelegateObject *delegateObj = [[QSPDownloadToolDelegateObject alloc] init];
+    delegateObj.delegate = delegate;
+    [self.delegateArr addObject:delegateObj];
 }
 - (void)removeDownloadToolDelegate:(id<QSPDownloadToolDelegate>)delegate
 {
-    [self.delegateArr removeObject:delegate];
+    for (QSPDownloadToolDelegateObject *obj in self.delegateArr) {
+        if (obj.delegate == delegate) {
+            [self.delegateArr removeObject:delegate];
+            return;
+        }
+    }
 }
 
 /**
@@ -172,7 +325,12 @@ static QSPDownloadTool *_shareInstance;
         NSLog(@"不能暂停为开始的下载任务！");
     }
 }
-
+- (void)suspendAllTask
+{
+    for (QSPDownloadSource *source in self.downloadSources) {
+        [self suspendDownload:source];
+    }
+}
 /**
  继续下载任务
  
@@ -183,11 +341,11 @@ static QSPDownloadTool *_shareInstance;
     if (source.style == QSPDownloadSourceStyleSuspend) {
         source.style = QSPDownloadSourceStyleDown;
         if (source.resumeData) {
-            [source changeTask:[self.session downloadTaskWithResumeData:source.resumeData]];
+            [source setTask:[self.session downloadTaskWithResumeData:source.resumeData]];
         }
         else
         {
-            [source changeTask:[self.session downloadTaskWithURL:[NSURL URLWithString:source.netPath]]];
+            [source setTask:[self.session downloadTaskWithURL:[NSURL URLWithString:source.netPath]]];
         }
         [source.task resume];
     }
@@ -196,7 +354,12 @@ static QSPDownloadTool *_shareInstance;
         NSLog(@"不能继续未暂停的下载任务！");
     }
 }
-
+- (void)startAllTask
+{
+    for (QSPDownloadSource *source in self.downloadSources) {
+        [self continueDownload:source];
+    }
+}
 /**
  停止下载任务
  
@@ -209,9 +372,14 @@ static QSPDownloadTool *_shareInstance;
     }
     
     source.style = QSPDownloadSourceStyleStop;
-    [self.downloadSources removeObject:source];
+    [(NSMutableArray *)self.downloadSources removeObject:source];
 }
-
+- (void)stopAllTask
+{
+    for (QSPDownloadSource *source in self.downloadSources) {
+        [self stopDownload:source];
+    }
+}
 #pragma mark - NSURLSessionDownloadDelegate代理方法
 - (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
 {
@@ -219,8 +387,8 @@ static QSPDownloadTool *_shareInstance;
         if (source.task == downloadTask) {
             dispatch_async(dispatch_get_main_queue(), ^{
                 if ([source.delegate respondsToSelector:@selector(downloadSource:didWriteData:totalBytesWritten:totalBytesExpectedToWrite:)]) {
-                    [source changeTotalBytesWritten:totalBytesWritten];
-                    [source changeTotalBytesExpectedToWrite:totalBytesExpectedToWrite];
+                    [source setTotalBytesWritten:totalBytesWritten];
+                    [source setTotalBytesExpectedToWrite:totalBytesExpectedToWrite];
                     [source.delegate downloadSource:source didWriteData:bytesWritten totalBytesWritten:totalBytesWritten totalBytesExpectedToWrite:totalBytesExpectedToWrite];
                 }
             });
@@ -232,17 +400,18 @@ static QSPDownloadTool *_shareInstance;
     NSLog(@"%@", location);
     NSLog(@"%@", [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject]);
     
+    dispatch_async(dispatch_get_main_queue(), ^{
+        for (QSPDownloadToolDelegateObject *delegateObj in self.delegateArr) {
+            if ([delegateObj.delegate respondsToSelector:@selector(downloadTool:downloadTask:didFinishDownloadingToURL:)]) {
+                [delegateObj.delegate downloadTool:self downloadTask:downloadTask didFinishDownloadingToURL:location];
+            }
+        }
+    });
+    
     AppDelegate *appDelegate = (AppDelegate *)[UIApplication sharedApplication].delegate;
     if (appDelegate.completionHandler) {
         appDelegate.completionHandler();
     }
-    dispatch_async(dispatch_get_main_queue(), ^{
-        for (id delegate in self.delegateArr) {
-            if ([delegate respondsToSelector:@selector(downloadTool:downloadTask:didFinishDownloadingToURL:)]) {
-                [delegate downloadTool:self downloadTask:downloadTask didFinishDownloadingToURL:location];
-            }
-        }
-    });
 }
 - (void)URLSession:(NSURLSession *)session downloadTask:(NSURLSessionDownloadTask *)downloadTask didResumeAtOffset:(int64_t)fileOffset expectedTotalBytes:(int64_t)expectedTotalBytes
 {
@@ -250,3 +419,9 @@ static QSPDownloadTool *_shareInstance;
 }
 
 @end
+
+
+@implementation QSPDownloadToolDelegateObject
+
+@end
+

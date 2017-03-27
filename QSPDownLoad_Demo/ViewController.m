@@ -21,7 +21,7 @@
 - (NSMutableArray *)dataArr
 {
     if (_dataArr == nil) {
-        _dataArr = [NSMutableArray arrayWithCapacity:1];
+        _dataArr = [NSMutableArray arrayWithArray:[QSPDownloadTool shareInstance].downloadSources];
     }
     
     return _dataArr;
@@ -29,6 +29,7 @@
 
 - (void)dealloc
 {
+    NSLog(@"%@ 销毁啦！", NSStringFromClass([self class]));
     [[QSPDownloadTool shareInstance] removeDownloadToolDelegate:self];
 }
 - (void)viewDidLoad {
@@ -45,11 +46,13 @@
     tableView.delegate = self;
     tableView.tableFooterView = [[UIView alloc] initWithFrame:CGRectZero];
     self.tableView = tableView;
+    
+    [[QSPDownloadTool shareInstance] addDownloadToolDelegate:self];
 }
 
 - (void)addDownLoadData:(UIButton *)sender
 {
-    [self.dataArr addObject:[[QSPDownloadTool shareInstance] addDownloadTast:@"http://zyvideo1.oss-cn-qingdao.aliyuncs.com/zyvd/7c/de/04ec95f4fd42d9d01f63b9683ad0" andDelegate:self]];
+    [self.dataArr addObject:[[QSPDownloadTool shareInstance] addDownloadTast:@"http://zyvideo1.oss-cn-qingdao.aliyuncs.com/zyvd/7c/de/04ec95f4fd42d9d01f63b9683ad0" andOffLine:YES]];
     [self.tableView insertRowsAtIndexPaths:@[[NSIndexPath indexPathForRow:self.dataArr.count - 1 inSection:0]] withRowAnimation:UITableViewRowAnimationTop];
 }
 
