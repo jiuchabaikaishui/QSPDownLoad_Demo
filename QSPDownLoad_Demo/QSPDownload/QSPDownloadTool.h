@@ -20,19 +20,18 @@ typedef NS_ENUM(NSInteger, QSPDownloadSourceStyle) {
 @protocol QSPDownloadSourceDelegate <NSObject>
 @optional
 - (void)downloadSource:(QSPDownloadSource *)source changedStyle:(QSPDownloadSourceStyle)style;
-- (void)downloadSource:(QSPDownloadSource *)source changedResumeData:(NSData *)resumeData;
-- (void)downloadSource:(QSPDownloadSource *)source didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite;
+- (void)downloadSource:(QSPDownloadSource *)source didWriteData:(NSData *)data totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite;
 @end
 
 @interface QSPDownloadSource : NSObject <NSCoding>
 //地址路径
 @property (copy, nonatomic, readonly) NSString *netPath;
 //本地路径
-@property (copy, nonatomic, readonly) NSURL *location;
+@property (copy, nonatomic, readonly) NSString *location;
 //下载状态
 @property (assign, nonatomic, readonly) QSPDownloadSourceStyle style;
 //下载任务
-@property (strong, nonatomic, readonly) NSURLSessionDownloadTask *task;
+@property (strong, nonatomic, readonly) NSURLSessionDataTask *task;
 //文件名称
 @property (strong, nonatomic, readonly) NSString *fileName;
 //已下载的字节数
@@ -50,7 +49,7 @@ typedef NS_ENUM(NSInteger, QSPDownloadSourceStyle) {
 @class QSPDownloadTool;
 @protocol QSPDownloadToolDelegate <NSObject>
 
-- (void)downloadTool:(QSPDownloadTool *)tool downloadTask:(NSURLSessionDownloadTask *)downloadTask didFinishDownloadingToURL:(NSURL *)location;
+- (void)downloadToolDidFinish:(QSPDownloadTool *)tool downloadSource:(QSPDownloadSource *)source;
 
 @end
 

@@ -7,7 +7,7 @@
 //
 
 #import "AppDelegate+DownLoad.h"
-#import <objc/Object.h>
+#import <objc/message.h>
 
 #define CompletionHandlerName       "completionHandler"
 

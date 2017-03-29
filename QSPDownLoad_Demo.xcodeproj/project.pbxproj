@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		6E63DB0B1E8B8010009325CD /* FinishedViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 6E63DB0A1E8B8010009325CD /* FinishedViewController.m */; };
 		6EB376A91E84F939002ED580 /* AppDelegate+Download.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EB376A61E84F939002ED580 /* AppDelegate+Download.m */; };
 		6EB376AA1E84F939002ED580 /* QSPDownloadTool.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EB376A81E84F939002ED580 /* QSPDownloadTool.m */; };
 		6EB376B01E86FF76002ED580 /* DownLoadCell.m in Sources */ = {isa = PBXBuildFile; fileRef = 6EB376AF1E86FF76002ED580 /* DownLoadCell.m */; };
@@ -38,6 +39,8 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		6E63DB091E8B8010009325CD /* FinishedViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FinishedViewController.h; sourceTree = "<group>"; };
+		6E63DB0A1E8B8010009325CD /* FinishedViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = FinishedViewController.m; sourceTree = "<group>"; };
 		6EB376A51E84F939002ED580 /* AppDelegate+Download.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = "AppDelegate+Download.h"; sourceTree = "<group>"; };
 		6EB376A61E84F939002ED580 /* AppDelegate+Download.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = "AppDelegate+Download.m"; sourceTree = "<group>"; };
 		6EB376A71E84F939002ED580 /* QSPDownloadTool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = QSPDownloadTool.h; sourceTree = "<group>"; };
@@ -128,6 +131,8 @@
 				6EE4C87C1E80D4120079F224 /* ViewController.m */,
 				6EB376AE1E86FF76002ED580 /* DownLoadCell.h */,
 				6EB376AF1E86FF76002ED580 /* DownLoadCell.m */,
+				6E63DB091E8B8010009325CD /* FinishedViewController.h */,
+				6E63DB0A1E8B8010009325CD /* FinishedViewController.m */,
 				6EE4C87E1E80D4130079F224 /* Main.storyboard */,
 				6EE4C8811E80D4130079F224 /* Assets.xcassets */,
 				6EE4C8831E80D4130079F224 /* LaunchScreen.storyboard */,
@@ -230,6 +235,7 @@
 				TargetAttributes = {
 					6EE4C8711E80D4120079F224 = {
 						CreatedOnToolsVersion = 8.2.1;
+						DevelopmentTeam = XG7F759PG6;
 						ProvisioningStyle = Automatic;
 					};
 					6EE4C88A1E80D4130079F224 = {
@@ -297,6 +303,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				6EB376A91E84F939002ED580 /* AppDelegate+Download.m in Sources */,
+				6E63DB0B1E8B8010009325CD /* FinishedViewController.m in Sources */,
 				6EB376B01E86FF76002ED580 /* DownLoadCell.m in Sources */,
 				6EB376AA1E84F939002ED580 /* QSPDownloadTool.m in Sources */,
 				6EE4C87D1E80D4120079F224 /* ViewController.m in Sources */,
@@ -448,6 +455,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = XG7F759PG6;
 				INFOPLIST_FILE = QSPDownLoad_Demo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
@@ -460,6 +468,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				DEVELOPMENT_TEAM = XG7F759PG6;
 				INFOPLIST_FILE = QSPDownLoad_Demo/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";

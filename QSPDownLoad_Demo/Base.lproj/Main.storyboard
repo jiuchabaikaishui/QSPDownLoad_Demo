@@ -31,7 +31,7 @@
         <!--已完成-->
         <scene sceneID="VIj-mL-hUl">
             <objects>
-                <viewController id="eBM-gq-5SU" sceneMemberID="viewController">
+                <viewController id="eBM-gq-5SU" customClass="FinishedViewController" sceneMemberID="viewController">
                     <layoutGuides>
                         <viewControllerLayoutGuide type="top" id="WFb-Sy-JGy"/>
                         <viewControllerLayoutGuide type="bottom" id="ovX-sK-s8m"/>

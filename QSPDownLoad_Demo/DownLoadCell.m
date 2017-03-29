@@ -164,7 +164,7 @@
 }
 
 #pragma mark - <QSPDownloadSourceDelegate>代理方法
-- (void)downloadSource:(QSPDownloadSource *)source didWriteData:(int64_t)bytesWritten totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
+- (void)downloadSource:(QSPDownloadSource *)source didWriteData:(NSData *)data totalBytesWritten:(int64_t)totalBytesWritten totalBytesExpectedToWrite:(int64_t)totalBytesExpectedToWrite
 {
     if (!self.totalLabel.text) {
         self.totalLabel.text = [QSPDownloadTool calculationDataWithBytes:totalBytesExpectedToWrite];
@@ -174,7 +174,7 @@
     NSDate *now = [NSDate date];
     if (self.lastDate) {
         NSTimeInterval timeInterval = [now timeIntervalSinceDate:self.lastDate];
-        self.bytes += bytesWritten;
+        self.bytes += data.length;
         if (timeInterval > 1) {
             float progress = totalBytesWritten/(float)totalBytesExpectedToWrite;
             self.progressView.progress = progress;
@@ -204,10 +204,6 @@
         [self.button setTitle:@"下载" forState:UIControlStateNormal];
         self.rateLabel.text = nil;
     }
-}
-- (void)downloadSource:(QSPDownloadSource *)source changedResumeData:(NSData *)resumeData
-{
-    NSLog(@"%s", __FUNCTION__);
 }
 
 @end
