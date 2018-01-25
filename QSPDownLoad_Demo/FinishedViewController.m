@@ -100,14 +100,12 @@
         [self.dataArr removeObjectAtIndex:indexPath.row];
         [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationMiddle];
         
-        dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-            NSMutableArray *mArr = [NSMutableArray arrayWithCapacity:1];
-            for (QSPDownloadSource *source in self.dataArr) {
-                NSData *data = [NSKeyedArchiver archivedDataWithRootObject:source];
-                [mArr addObject:data];
-            }
-            [mArr writeToFile:QSPDownloadTool_DownloadFinishedSources_Path atomically:YES];
-        });
+        NSMutableArray *mArr = [NSMutableArray arrayWithCapacity:1];
+        for (QSPDownloadSource *source in self.dataArr) {
+            NSData *data = [NSKeyedArchiver archivedDataWithRootObject:source];
+            [mArr addObject:data];
+        }
+        [mArr writeToFile:QSPDownloadTool_DownloadFinishedSources_Path atomically:YES];
     }
 }
 

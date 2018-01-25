@@ -115,14 +115,12 @@
         }
     }
     
-    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_BACKGROUND, 0), ^{
-        NSArray *arr = [NSArray arrayWithContentsOfFile:QSPDownloadTool_DownloadFinishedSources_Path];
-        NSMutableArray *mArr = [NSMutableArray arrayWithArray:arr];
-        NSData *data = [NSKeyedArchiver archivedDataWithRootObject:source];
-        [mArr addObject:data];
-        
-        [mArr writeToFile:QSPDownloadTool_DownloadFinishedSources_Path atomically:YES];
-    });
+    NSArray *arr = [NSArray arrayWithContentsOfFile:QSPDownloadTool_DownloadFinishedSources_Path];
+    NSMutableArray *mArr = [NSMutableArray arrayWithArray:arr];
+    NSData *data = [NSKeyedArchiver archivedDataWithRootObject:source];
+    [mArr addObject:data];
+    
+    [mArr writeToFile:QSPDownloadTool_DownloadFinishedSources_Path atomically:YES];
 }
 
 @end

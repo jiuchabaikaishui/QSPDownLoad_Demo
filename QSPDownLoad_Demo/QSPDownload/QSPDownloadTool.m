@@ -11,6 +11,14 @@
 #import "AppDelegate.h"
 #import "AppDelegate+Download.h"
 
+#define QSPDownloadTool_Document_Path                   [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject]
+#define QSPDownloadTool_DownloadDataDocument_Path       [QSPDownloadTool_Document_Path stringByAppendingPathComponent:@"QSPDownloadTool_DownloadDataDocument_Path"]
+#define QSPDownloadTool_DownloadSources_Path            [QSPDownloadTool_Document_Path stringByAppendingPathComponent:@"QSPDownloadTool_downloadSources.data"]
+#define QSPDownloadTool_OffLineStyle_Key                @"QSPDownloadTool_OffLineStyle_Key"
+#define QSPDownloadTool_OffLine_Key                     @"QSPDownloadTool_OffLine_Key"
+
+#define QSPDownloadTool_Limit                           1024.0
+
 @interface QSPDownloadSource ()
 
 @property (strong, nonatomic) NSFileHandle *fileHandle;
@@ -22,6 +30,7 @@
 {
     if (_fileHandle == nil) {
         NSURL *url = [NSURL fileURLWithPath:self.location];
+        NSLog(@"-----------%@", self.location);
         _fileHandle = url ? [NSFileHandle fileHandleForWritingToURL:url error:nil] : nil;
     }
     
@@ -66,10 +75,10 @@
 {
     if (self = [super init]) {
         self.netPath = [aDecoder decodeObjectForKey:@"netPath"];
-        self.location = [aDecoder decodeObjectForKey:@"location"];
         self.style = [aDecoder decodeIntegerForKey:@"style"];
         self.task = nil;
         self.fileName = [aDecoder decodeObjectForKey:@"fileName"];
+        self.location = [QSPDownloadTool_DownloadDataDocument_Path stringByAppendingPathComponent:self.fileName];
         self.totalBytesWritten = [aDecoder decodeInt64ForKey:@"totalBytesWritten"];
         self.totalBytesExpectedToWrite = [aDecoder decodeInt64ForKey:@"totalBytesExpectedToWrite"];
         self.offLine = [aDecoder decodeBoolForKey:@"offLine"];
@@ -93,14 +102,6 @@
 
 
 @interface QSPDownloadTool ()<NSURLSessionDataDelegate>
-
-#define QSPDownloadTool_Document_Path                   [NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES) firstObject]
-#define QSPDownloadTool_DownloadDataDocument_Path       [QSPDownloadTool_Document_Path stringByAppendingPathComponent:@"QSPDownloadTool_DownloadDataDocument_Path"]
-#define QSPDownloadTool_DownloadSources_Path            [QSPDownloadTool_Document_Path stringByAppendingPathComponent:@"QSPDownloadTool_downloadSources.data"]
-#define QSPDownloadTool_OffLineStyle_Key                @"QSPDownloadTool_OffLineStyle_Key"
-#define QSPDownloadTool_OffLine_Key                     @"QSPDownloadTool_OffLine_Key"
-
-#define QSPDownloadTool_Limit                           1024.0
 
 @property (strong, nonatomic) NSMutableArray *downloadSources;
 @property (strong, nonatomic) NSURLSession *session;
@@ -189,17 +190,20 @@ static QSPDownloadTool *_shareInstance;
     static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         _shareInstance = [super allocWithZone:zone];
-//        [[NSNotificationCenter defaultCenter] addObserver:_shareInstance selector:@selector(terminateAction:) name:UIApplicationWillTerminateNotification object:nil];
-        if (![[NSFileManager defaultManager] fileExistsAtPath:QSPDownloadTool_DownloadDataDocument_Path]) {
-            [[NSFileManager defaultManager] createDirectoryAtPath:QSPDownloadTool_DownloadDataDocument_Path withIntermediateDirectories:YES attributes:nil error:nil];
-        }
+        [[NSNotificationCenter defaultCenter] addObserver:_shareInstance selector:@selector(terminateAction:) name:UIApplicationWillTerminateNotification object:nil];
+        [[NSNotificationCenter defaultCenter] addObserver:_shareInstance selector:@selector(saveDownloadSource) name:UIApplicationDidEnterBackgroundNotification object:nil];
     });
     
     return _shareInstance;
 }
++ (void)initialize {
+    if (![[NSFileManager defaultManager] fileExistsAtPath:QSPDownloadTool_DownloadDataDocument_Path]) {
+        [[NSFileManager defaultManager] createDirectoryAtPath:QSPDownloadTool_DownloadDataDocument_Path withIntermediateDirectories:YES attributes:nil error:nil];
+    }
+}
 - (void)terminateAction:(NSNotification *)sender
 {
-    NSLog(@"我退出啦！");
+    [self saveDownloadSource];
 }
 - (void)saveDownloadSource
 {
@@ -390,7 +394,11 @@ static QSPDownloadTool *_shareInstance;
     source.style = QSPDownloadSourceStyleStop;
     [source.fileHandle closeFile];
     source.fileHandle = nil;
-    [[NSFileManager defaultManager] removeItemAtURL:[NSURL fileURLWithPath:source.location] error:nil];
+    NSError *error = nil;
+    [[NSFileManager defaultManager] removeItemAtURL:[NSURL fileURLWithPath:source.location] error:&error];
+    if (error) {
+        NSLog(@"----------删除文件失败！\n%@\n%@", error, source.location);
+    }
     [(NSMutableArray *)self.downloadSources removeObject:source];
     [self saveDownloadSource];
 }
